@@ -1,0 +1,24 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: aquasave-mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+    restart: unless-stopped
+
+  edge-service:
+    build: .
+    container_name: aquasave-edge-service
+    environment:
+      - MQTT_BROKER_URL=mqtt://mosquitto:1883
+      # Backend local en la maquina host (cambiar por la URL de Render en prod)
+      - BACKEND_BASE_URL=http://host.docker.internal:3000
+      - EDGE_API_KEY=${EDGE_API_KEY:-}
+      - COMMAND_POLL_INTERVAL_MS=3000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
