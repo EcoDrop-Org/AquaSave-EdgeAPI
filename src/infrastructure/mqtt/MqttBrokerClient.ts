@@ -3,8 +3,15 @@ import type { MqttClient } from 'mqtt';
 
 type MessageHandler = (topic: string, payload: string) => void;
 
+export type MqttBrokerOptions = {
+  clientId?: string;
+  username?: string;
+  password?: string;
+  rejectUnauthorized?: boolean;
+};
+
 /**
- * Infraestructura: cliente del broker MQTT (Eclipse Mosquitto).
+ * Infraestructura: cliente del broker MQTT (Mosquitto / HiveMQ Cloud).
  *
  * Soporta suscripciones con comodines (`+`): cada mensaje entrante se
  * despacha al handler cuyo patron coincida con el topico, pasandole el
@@ -14,15 +21,24 @@ export class MqttBrokerClient {
   private client!: MqttClient;
   private readonly subscriptions = new Map<string, MessageHandler>();
 
-  constructor(private readonly brokerUrl: string) {}
+  constructor(
+    private readonly brokerUrl: string,
+    private readonly options: MqttBrokerOptions = {},
+  ) {}
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       const clientId =
-        process.env.MQTT_CLIENT_ID ?? `aquasave-edge-${Date.now()}`;
+        this.options.clientId ?? `aquasave-edge-${Date.now()}`;
       console.log(`[MQTT] Conectando a ${this.brokerUrl} como ${clientId} ...`);
 
-      this.client = mqtt.connect(this.brokerUrl, { clientId, clean: true });
+      this.client = mqtt.connect(this.brokerUrl, {
+        clientId,
+        clean: true,
+        username: this.options.username,
+        password: this.options.password,
+        rejectUnauthorized: this.options.rejectUnauthorized,
+      });
 
       this.client.on('connect', () => {
         console.log('[MQTT] Conectado al broker.');
