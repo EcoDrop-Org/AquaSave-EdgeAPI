@@ -14,7 +14,7 @@ services:
     environment:
       - MQTT_BROKER_URL=mqtt://mosquitto:1883
       # Backend local en la maquina host (cambiar por la URL de Render en prod)
-      - BACKEND_BASE_URL=http://host.docker.internal:3000
+      - BACKEND_BASE_URL=https://aquasave-backend.onrender.com
       - EDGE_API_KEY=${EDGE_API_KEY:-}
       - COMMAND_POLL_INTERVAL_MS=3000
     extra_hosts:
