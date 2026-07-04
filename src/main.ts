@@ -22,6 +22,13 @@ import { CommandDispatchService } from './application/services/CommandDispatchSe
 
 const MQTT_BROKER_URL =
   process.env.MQTT_BROKER_URL ?? 'mqtt://localhost:1883';
+const MQTT_CLIENT_ID = process.env.MQTT_CLIENT_ID?.trim() || undefined;
+const MQTT_USERNAME = process.env.MQTT_USERNAME?.trim() || undefined;
+const MQTT_PASSWORD = process.env.MQTT_PASSWORD?.trim() || undefined;
+const MQTT_REJECT_UNAUTHORIZED =
+  process.env.MQTT_REJECT_UNAUTHORIZED?.trim().toLowerCase() === 'false'
+    ? false
+    : undefined;
 const BACKEND_BASE_URL =
   process.env.BACKEND_BASE_URL ?? 'http://localhost:3000';
 const EDGE_API_KEY = process.env.EDGE_API_KEY?.trim() || undefined;
@@ -32,10 +39,16 @@ const COMMAND_POLL_INTERVAL_MS = Number(
 async function main() {
   console.log('[EdgeService] Iniciando AquaSave Edge Service...');
   console.log(`[EdgeService] Backend: ${BACKEND_BASE_URL}`);
+  console.log(`[EdgeService] MQTT broker: ${MQTT_BROKER_URL}`);
 
   // ── Infraestructura ───────────────────────────────────────────────
   const httpClient = new AquaSaveHttpClient(BACKEND_BASE_URL, EDGE_API_KEY);
-  const mqttClient = new MqttBrokerClient(MQTT_BROKER_URL);
+  const mqttClient = new MqttBrokerClient(MQTT_BROKER_URL, {
+    clientId: MQTT_CLIENT_ID,
+    username: MQTT_USERNAME,
+    password: MQTT_PASSWORD,
+    rejectUnauthorized: MQTT_REJECT_UNAUTHORIZED,
+  });
 
   // ── Dominio ───────────────────────────────────────────────────────
   const registry = new DeviceRegistry();
