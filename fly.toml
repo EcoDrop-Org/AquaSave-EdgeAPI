@@ -12,8 +12,8 @@
 #
 # El nombre "app" debe ser unico en Fly; cambialo si ya esta tomado.
 
-app = "aquasave-edge-service"
-primary_region = "gig"  # Rio de Janeiro (cercano a Peru). Alternativas: scl, eze.
+app = "aquasave-edgeapi"
+primary_region = "ams"  # region donde se creo la app en el launcher web
 
 [build]
   dockerfile = "Dockerfile"
@@ -26,12 +26,22 @@ primary_region = "gig"  # Rio de Janeiro (cercano a Peru). Alternativas: scl, ez
   MQTT_CLIENT_ID = "aquasave-edge-service"
   BACKEND_BASE_URL = "https://aquasave-backend.onrender.com"
   COMMAND_POLL_INTERVAL_MS = "3000"
+  PORT = "8080"
 
-# Una sola maquina, siempre encendida. Como no hay [http_service] que la
-# "despierte", NO uses auto_stop: la maquina debe quedarse corriendo para
-# mantener viva la suscripcion MQTT. Se controla con:
-#   flyctl scale count 1
-#   flyctl machine update <id> --autostart=false --autostop=off
+# El edge no es un servidor web, pero expone un health check HTTP minimo en el
+# puerto 8080 (ver startHealthServer en src/main.ts). Esto evita que Fly
+# reinicie la maquina en bucle por "instance refused connection".
+#
+# auto_stop/start desactivados y min_machines_running = 1: la maquina debe
+# quedarse SIEMPRE encendida para mantener viva la suscripcion MQTT (no hay
+# trafico HTTP entrante que la despierte).
+[http_service]
+  internal_port = 8080
+  force_https = false
+  auto_stop_machines = false
+  auto_start_machines = false
+  min_machines_running = 1
+
 [[vm]]
   size = "shared-cpu-1x"
   memory = "256mb"

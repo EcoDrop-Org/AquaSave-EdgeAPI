@@ -11,6 +11,7 @@
  *   Infraestructura → Aplicacion → Dominio
  */
 import 'dotenv/config';
+import { createServer } from 'node:http';
 
 import { MqttBrokerClient } from './infrastructure/mqtt/MqttBrokerClient';
 import { AquaSaveHttpClient } from './infrastructure/http/AquaSaveHttpClient';
@@ -35,8 +36,29 @@ const EDGE_API_KEY = process.env.EDGE_API_KEY?.trim() || undefined;
 const COMMAND_POLL_INTERVAL_MS = Number(
   process.env.COMMAND_POLL_INTERVAL_MS ?? 3000,
 );
+// Puerto del health check HTTP. El edge no es un servidor web, pero muchas
+// plataformas (Fly.io, Render) esperan que el proceso escuche un puerto para
+// considerarlo "sano"; sin esto reinician la maquina en bucle. Fly inyecta
+// PORT via [http_service].internal_port (por defecto 8080).
+const HEALTH_PORT = Number(process.env.PORT ?? 8080);
+
+/**
+ * Levanta un servidor HTTP minimo que responde 200 en cualquier ruta. Solo
+ * existe para satisfacer el health check de la plataforma de hosting.
+ */
+function startHealthServer(): void {
+  const server = createServer((_req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', service: 'aquasave-edge' }));
+  });
+  server.listen(HEALTH_PORT, '0.0.0.0', () => {
+    console.log(`[EdgeService] Health check HTTP en 0.0.0.0:${HEALTH_PORT}`);
+  });
+}
 
 async function main() {
+  startHealthServer();
+
   console.log('[EdgeService] Iniciando AquaSave Edge Service...');
   console.log(`[EdgeService] Backend: ${BACKEND_BASE_URL}`);
   console.log(`[EdgeService] MQTT broker: ${MQTT_BROKER_URL}`);
