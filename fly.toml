@@ -1,0 +1,37 @@
+# Configuracion de despliegue en Fly.io del AquaSave Edge Service.
+#
+# El edge NO expone HTTP: solo se conecta a HiveMQ Cloud (MQTT/TLS) y hace
+# polling al backend. Por eso este fly.toml no define [http_service] ni
+# expone puertos. Corre como un proceso de fondo always-on.
+#
+# Pasos de despliegue (ver README, seccion "Deploy en Fly.io"):
+#   1. flyctl auth login
+#   2. flyctl launch --no-deploy --copy-config --name aquasave-edge-service
+#   3. flyctl secrets set MQTT_PASSWORD=Aquasave123   (NO poner la clave aqui)
+#   4. flyctl deploy
+#
+# El nombre "app" debe ser unico en Fly; cambialo si ya esta tomado.
+
+app = "aquasave-edge-service"
+primary_region = "gig"  # Rio de Janeiro (cercano a Peru). Alternativas: scl, eze.
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Variables de entorno no sensibles. La password va como secreto:
+#   flyctl secrets set MQTT_PASSWORD=...
+[env]
+  MQTT_BROKER_URL = "mqtts://109a1a97e0814454afa8d22b818e2da5.s1.eu.hivemq.cloud:8883"
+  MQTT_USERNAME = "aquasave-edge"
+  MQTT_CLIENT_ID = "aquasave-edge-service"
+  BACKEND_BASE_URL = "https://aquasave-backend.onrender.com"
+  COMMAND_POLL_INTERVAL_MS = "3000"
+
+# Una sola maquina, siempre encendida. Como no hay [http_service] que la
+# "despierte", NO uses auto_stop: la maquina debe quedarse corriendo para
+# mantener viva la suscripcion MQTT. Se controla con:
+#   flyctl scale count 1
+#   flyctl machine update <id> --autostart=false --autostop=off
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

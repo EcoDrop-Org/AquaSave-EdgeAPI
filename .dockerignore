@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.env
+.env.*
+*.log
+fly.toml
+docker-compose.yml
+mosquitto.conf
+README.md
