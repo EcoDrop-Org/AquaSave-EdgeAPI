@@ -93,6 +93,47 @@ COMMAND_POLL_INTERVAL_MS=3000
 No crear un Web Service para este proyecto: el EdgeAPI no expone HTTP publico.
 Debe quedarse corriendo como proceso de fondo conectado a HiveMQ.
 
+> Nota: los **Background Workers de Render ya no tienen plan gratuito**
+> (arrancan de pago). Para un despliegue gratuito always-on usar **Fly.io**
+> (abajo). En Render solo hay tier gratis para Web Services, que ademas
+> duermen por inactividad; no es ideal para mantener viva la suscripcion MQTT.
+
+## Deploy en Fly.io (gratuito, always-on)
+
+El repo incluye `fly.toml` y `Dockerfile` listos. El edge no expone HTTP, asi
+que corre como una maquina de fondo siempre encendida (sin `[http_service]`).
+
+Requisitos: cuenta en Fly.io (pide tarjeta, pero el uso entra en el free
+allowance) y `flyctl` instalado (`https://fly.io/docs/flyctl/install`).
+
+```bash
+flyctl auth login
+
+# Crea la app usando el fly.toml del repo (no despliega todavia).
+flyctl launch --no-deploy --copy-config --name aquasave-edge-service
+
+# La password MQTT va como SECRETO (no en el repo ni en fly.toml):
+flyctl secrets set MQTT_PASSWORD=Aquasave123
+
+# Desplegar.
+flyctl deploy
+```
+
+Verificar que quedo corriendo:
+
+```bash
+flyctl logs        # deberia mostrar "[MQTT] Conectado al broker."
+flyctl status      # la maquina debe estar "started"
+```
+
+Si Fly apagara la maquina por inactividad, forzar always-on:
+
+```bash
+flyctl scale count 1
+flyctl machine list
+flyctl machine update <MACHINE_ID> --autostop=off --autostart=false
+```
+
 ## Flujo de riego manual
 
 1. El usuario pulsa "Iniciar riego" en la app.
